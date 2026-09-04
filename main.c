@@ -188,8 +188,8 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
             Rectangle spikehit = {
                 tilerect.x + (TILE_SIZE * 0.25f), 
                 tilerect.y + (TILE_SIZE * 0.25f), 
-                TILE_SIZE * 0.50f,                 
-                TILE_SIZE * 0.75f                  
+                TILE_SIZE * 0.5f,                 
+                TILE_SIZE * 0.5f                  
             };
 
             if(CheckCollisionCircleRec(b->position, b->radius, spikehit)) {
@@ -319,7 +319,7 @@ int main(void){
 
 //DRAW
         BeginDrawing();
-        ClearBackground((Color){173, 216, 230, 255});
+        ClearBackground((Color){174, 206, 240, 255});
         
         BeginMode2D(camera);
             DrawTile(&levelAssets);
