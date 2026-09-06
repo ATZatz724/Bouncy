@@ -47,7 +47,9 @@ typedef enum platformtype{
 typedef enum Gamestate{
     PLAYING,
     DEAD,
-    WIN
+    WIN, 
+    PAUSED,
+    MAIN_MENUE
 }Gamestate;
 
 
@@ -71,6 +73,9 @@ const int initial_map[MAP_ROW][MAP_COL]={
     {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 };
 int map[MAP_ROW][MAP_COL];
+
+/* scoring */ int score = 0;
+
 
 // typedef struct Platform{
 //     Rectangle rect;
@@ -96,8 +101,7 @@ void Reset(Ball *b){
             map[r][c]=initial_map[r][c];
         }
     }
-
-
+    score = 0;
 }
 
 
@@ -177,10 +181,12 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
             int tile= map[r][c];
             if(tile == 0) continue;
 
+            
             Rectangle tilerect  = {c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE};
             if(tile==4){
                 if(CheckCollisionCircleRec(b->position,b->radius,tilerect)){
                     map[r][c] = 0;
+                    score+=500;
                 }
                 continue;
             }
@@ -194,6 +200,7 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
 
             if(CheckCollisionCircleRec(b->position, b->radius, spikehit)) {
                 *state = DEAD;
+
             }
             continue;
         }
@@ -236,7 +243,7 @@ void DrawTile(Levelasset *lvl){
     for(int r=0; r < MAP_ROW; r++){
         for(int c=0; c < MAP_COL; c++){
             int tile = map[r][c];
-            v2 pos = {c*TILE_SIZE,r*TILE_SIZE};
+            v2 pos = {c*TILE_SIZE,r*TILE_SIZE}; 
             Rectangle des = {c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE};
             v2 origin = {0.0f,0.0f};
             Texture2D *tex=NULL;
@@ -259,12 +266,67 @@ void DrawTile(Levelasset *lvl){
 
 }
 
+
+typedef enum ButtonState
+{
+    NORMAL,
+    PRESSED,
+}ButtonState;
+
+typedef struct Button
+{
+    Rectangle rect;
+    ButtonState state;
+}Button;
+
+
+
+Rectangle MenueRect = (Rectangle){0.27*BASE_W, 0.08*BASE_H, 0.46*BASE_W, 0.75*BASE_H};
+
+
+Button PauseButton = {
+    .rect = (Rectangle){0.94*BASE_W, 0.05*BASE_H,0.04*BASE_W, 0.04*BASE_W},
+    .state = NORMAL
+};
+
+Button ResumeButton = {
+    .rect = (Rectangle){0.46*BASE_W, 0.24*BASE_H, 0.23*BASE_W, 0.21*BASE_H},
+    .state = NORMAL
+};
+
+Button RetryButton = {
+    .rect = (Rectangle){0.30*BASE_W, 0.24*BASE_H, 0.21*BASE_H, 0.21*BASE_H},
+    .state = NORMAL
+};
+
+Button HomeButton = {
+    .rect = (Rectangle){ 0.30*BASE_W, 0.54*BASE_H, 0.21*BASE_H, 0.21*BASE_H},
+    .state = NORMAL
+};
+
+Button MenuePlayButton = {
+    .rect = (Rectangle){ BASE_W*0.5f - 130.0f, 0.60f * BASE_H, 240.0f, 100.0f },
+    .state = NORMAL
+};
+
+
+    
+
+
 int main(void){
 // INIT
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(BASE_W,BASE_H,"Bounce Classic");
     SetTargetFPS(60);
     Texture2D ballsprite = LoadTexture("assets/images/red-ball.png");
+
+
+    Texture2D retrybuttonsprite = LoadTexture("assets/images/retry-button.png");
+    Texture2D resumebuttonsprite = LoadTexture("assets/images/resume.png");
+    Texture2D homebuttonsprite = LoadTexture("assets/images/home.png");
+    Texture2D logo = LoadTexture("assets/images/title-logo.png");
+    Texture2D menueplaybutton = LoadTexture("assets/images/play-button.png");
+    Texture2D pausebutton = LoadTexture("assets/images/PauseButton.png");
 
     Ball ball = {
                 .radius=14.0f,
@@ -279,14 +341,16 @@ int main(void){
         .ring   = LoadTexture("assets/images/tile_ring.png"),
         .goal   = LoadTexture("assets/images/tile_goal.png")
     };
-    Gamestate state = PLAYING;
-    Reset(&ball);
+    Gamestate state = MAIN_MENUE;
+    // Reset(&ball);
     Rectangle src= {0.0f,0.0f,(float)ball.texture.width,(float)ball.texture.height};
     Camera2D camera = { 0 };
     camera.offset = (v2){ BASE_W / 2.0f, BASE_H / 2.0f };
     camera.zoom = 1.8f;
     
     
+
+
 
     while(!WindowShouldClose()){
 //UPDATE
@@ -313,27 +377,133 @@ int main(void){
         camera.target.y = ball.position.y;
         float map_center_y = MAP_HEIGHT_PX / 2.0f;
         camera.target.y = map_center_y;
+    
+//Button Update
+        v2 mouse = GetMousePosition();
+
+        if(CheckCollisionPointRec(mouse, PauseButton.rect))
+        {
+            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                PauseButton.state = PRESSED;
+                state = PAUSED;
+            }
+            else PauseButton.state = NORMAL;
+        }
+        else PauseButton.state = NORMAL;
+
+
+        if(state == PAUSED)
+        {
+            if(CheckCollisionPointRec(mouse, ResumeButton.rect))
+            {
+                if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
+                    ResumeButton.state = PRESSED;
+                    state = PLAYING;
+                    ResumeButton.state = NORMAL;
+                }
+                else ResumeButton.state = NORMAL;
+            }
+            else ResumeButton.state = NORMAL;
+
+            if(CheckCollisionPointRec(mouse, RetryButton.rect))
+            {
+                if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
+                    RetryButton.state = PRESSED;
+                    Reset(&ball);
+                    state = PLAYING;
+                }
+                else RetryButton.state = NORMAL;
+            }
+            else RetryButton.state = NORMAL;
+
+            if(CheckCollisionPointRec(mouse, HomeButton.rect))
+            {
+                if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                {
+                    state = MAIN_MENUE;
+                    HomeButton.state = PRESSED;
+                }
+                else HomeButton.state = NORMAL;
+            }
+            else HomeButton.state = NORMAL;
+        }
+
+        if(state == MAIN_MENUE)
+        {
+            if(CheckCollisionPointRec(mouse, MenuePlayButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                state = PLAYING;
+                Reset(&ball);
+            }
+        }
+
         
         
          
 
 //DRAW
+
         BeginDrawing();
         ClearBackground((Color){174, 206, 240, 255});
+        if(state != MAIN_MENUE)
+        {
+            BeginMode2D(camera);
+                DrawTile(&levelAssets);
+                Rectangle des = {ball.position.x,ball.position.y,ball.radius*2.0f,ball.radius*2.0f};
+                v2 origin = {ball.radius,ball.radius};
+                DrawTexturePro(ball.texture,src,des,origin,ball.rotation,WHITE);
+            EndMode2D();
+
+            DrawText(TextFormat("Score: %d",score), BASE_W - 300,BASE_H - 680, 30, WHITE);
+        }
+
+        if(state != MAIN_MENUE) DrawTexturePro(pausebutton, (Rectangle){0.0f, 0.0f, pausebutton.width, pausebutton.height}, PauseButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
         
-        BeginMode2D(camera);
-            DrawTile(&levelAssets);
-            Rectangle des = {ball.position.x,ball.position.y,ball.radius*2.0f,ball.radius*2.0f};
-            v2 origin = {ball.radius,ball.radius};
-            DrawTexturePro(ball.texture,src,des,origin,ball.rotation,WHITE);
-        EndMode2D();
+        if(state == PAUSED)
+        {
+            DrawRectangleRec(MenueRect, RAYWHITE);
+            DrawText("LEVEL 1", MenueRect.x + 150, MenueRect.y + 20, 60, BLACK);
+            DrawTexturePro(resumebuttonsprite, (Rectangle){0.0f, 0.0f, resumebuttonsprite.width, resumebuttonsprite.height}, ResumeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+            DrawTexturePro(retrybuttonsprite, (Rectangle){0.0f, 0.0f, retrybuttonsprite.width, retrybuttonsprite.height}, RetryButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+            DrawTexturePro(homebuttonsprite, (Rectangle){0.0f, 0.0f, homebuttonsprite.width, homebuttonsprite.height}, HomeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+
+        }
+
+        if(state == MAIN_MENUE)
+        {
+            
+            DrawTexturePro(logo, 
+                (Rectangle){0.0f, 0.0f, logo.width, logo.height - 50}, 
+                (Rectangle){(BASE_W - 400.0f)/2, (BASE_H - 200.0f)/2 - 50.0f, 400.0f, 200.0f}, 
+                (v2){0.0f, 0.0f}, 
+                0.0f, 
+                WHITE
+            );
+
+            DrawTexturePro(menueplaybutton, 
+            (Rectangle){0.0f, 0.0f, menueplaybutton.width, menueplaybutton.height},
+            MenuePlayButton.rect,
+            (v2){0.0f, 0.0f},
+            0.0f,
+            WHITE
+            );
 
 
-        
-        
+            // if(IsKeyDown(KEY_ENTER)) 
+            // {
+            // state = PLAYING;
+            // Reset(&ball);
+            // }
 
+
+        }
         if(state == DEAD) DrawText("GAME OVER",480,20,24,RED);
         if(state == WIN) DrawText("LEVEL CLEARED",480,20,24,GOLD);
+
+
         
         
         EndDrawing();
@@ -347,7 +517,12 @@ int main(void){
     UnloadTexture(levelAssets.spring);
     UnloadTexture(levelAssets.ring);
     UnloadTexture(levelAssets.goal);
-
+    UnloadTexture(retrybuttonsprite);
+    UnloadTexture(resumebuttonsprite);
+    UnloadTexture(homebuttonsprite);
+    UnloadTexture(logo);
+    UnloadTexture(menueplaybutton);
+    UnloadTexture(pausebutton);
     CloseWindow();
 
 
