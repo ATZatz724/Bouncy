@@ -188,8 +188,8 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
             Rectangle spikehit = {
                 tilerect.x + (TILE_SIZE * 0.25f), 
                 tilerect.y + (TILE_SIZE * 0.25f), 
-                TILE_SIZE * 0.5f,                 
-                TILE_SIZE * 0.5f                  
+                TILE_SIZE * 0.45f,                 
+                TILE_SIZE * 0.45f                  
             };
 
             if(CheckCollisionCircleRec(b->position, b->radius, spikehit)) {
