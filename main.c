@@ -324,7 +324,7 @@ int main(void){
     Texture2D retrybuttonsprite = LoadTexture("assets/images/retry-button.png");
     Texture2D resumebuttonsprite = LoadTexture("assets/images/resume.png");
     Texture2D homebuttonsprite = LoadTexture("assets/images/home.png");
-    Texture2D logo = LoadTexture("assets/images/title-logo.png");
+    Texture2D logo = LoadTexture("assets/images/title_logo.jpg");
     Texture2D menueplaybutton = LoadTexture("assets/images/play-button.png");
     Texture2D pausebutton = LoadTexture("assets/images/PauseButton.png");
 
