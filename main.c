@@ -1,6 +1,8 @@
 #include "raylib.h"
 #include "raymath.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define BASE_W 1280
 #define BASE_H 720
@@ -18,6 +20,8 @@
 #define MAP_COL 105
 #define MAP_WIDTH_PX  (MAP_COL * TILE_SIZE)  
 #define MAP_HEIGHT_PX (MAP_ROW * TILE_SIZE)
+#define MAX_LEN 16
+#define SCORES "highscore.txt"
 
 typedef Vector2 v2;
 
@@ -37,19 +41,20 @@ typedef struct Ball{
     Texture2D texture;
 }Ball;
 
-typedef enum platformtype{
-    PT_NORMAL,
-    PT_SPRING,
-    PT_SPIKE,
-    PT_GOAL
-}platformtype;
+typedef struct ScoreRecord{
+    char name[MAX_LEN+1];
+    int score;
+}ScoreRecord;
+
+
 
 typedef enum Gamestate{
     PLAYING,
     DEAD,
     WIN, 
     PAUSED,
-    MAIN_MENUE
+    MAIN_MENUE,
+    NAME_INPUT
 }Gamestate;
 
 
@@ -266,6 +271,59 @@ void DrawTile(Levelasset *lvl){
 
 }
 
+// Score file Handling
+void LoadHighscore(ScoreRecord *record){
+    FILE *file = fopen(SCORES,"r");
+    if (file != NULL) {
+        if (fscanf(file, "%15s %d", record->name, &record->score) != 2) {
+            strcpy(record->name, "None");
+            record->score = 0;
+        }
+        fclose(file);
+    } else {
+        strcpy(record->name, "None");
+        record->score = 0;
+    }
+}
+
+void SaveHighScoreIfBest(const char *name, int currentScore, ScoreRecord *record) {
+    if (currentScore > record->score) {
+        record->score = currentScore;
+        strncpy(record->name, (strlen(name) > 0) ? name : "Player", MAX_LEN);
+        record->name[MAX_LEN] = '\0';
+
+        FILE *file = fopen(SCORES, "w");
+        if (file != NULL) {
+            fprintf(file, "%s %d\n", record->name, record->score);
+            fclose(file);
+        }
+    }
+}
+
+void UpdateNameInput(char *nameBuffer, int *letterCount, Gamestate *state) {
+    int key = GetCharPressed();
+
+    while (key > 0) {
+        if ((key >= 32) && (key <= 125) && (*letterCount < MAX_LEN)) {
+            nameBuffer[*letterCount] = (char)key;
+            nameBuffer[*letterCount + 1] = '\0';
+            (*letterCount)++;
+        }
+        key = GetCharPressed(); 
+    }
+
+  
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+        (*letterCount)--;
+        if (*letterCount < 0) *letterCount = 0;
+        nameBuffer[*letterCount] = '\0';
+    }
+
+    if (IsKeyPressed(KEY_ENTER) && *letterCount > 0) {
+        *state = PLAYING;
+    }
+}
+
 
 typedef enum ButtonState
 {
@@ -318,6 +376,12 @@ int main(void){
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(BASE_W,BASE_H,"Bounce Classic");
     SetTargetFPS(60);
+
+    ScoreRecord highScore = { "None", 0 };
+    LoadHighscore(&highScore);
+
+    char playerName[MAX_LEN + 1] = "\0";
+    int letterCount = 0;
     Texture2D ballsprite = LoadTexture("assets/images/red-ball.png");
 
 
@@ -435,9 +499,28 @@ int main(void){
         {
             if(CheckCollisionPointRec(mouse, MenuePlayButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
-                state = PLAYING;
+                state = NAME_INPUT;
+                letterCount = 0;
+                playerName[0] = '\0';
+            }
+        }
+        else if (state == NAME_INPUT) {
+            UpdateNameInput(playerName, &letterCount, &state);
+            if (state == PLAYING) {
                 Reset(&ball);
             }
+        }
+        else if (state == PLAYING) {
+            UpdateBall(&ball, dt, &state);
+            
+            // Check for game end & save score
+            if (state == DEAD || state == WIN) {
+                SaveHighScoreIfBest(playerName, score, &highScore);
+            }
+        }
+        else if (IsKeyPressed(KEY_R)) {
+            Reset(&ball);
+            state = PLAYING;
         }
 
         
@@ -448,7 +531,18 @@ int main(void){
 
         BeginDrawing();
         ClearBackground((Color){174, 206, 240, 255});
-        if(state != MAIN_MENUE)
+        if (state == NAME_INPUT) {
+            DrawRectangle(0, 0, BASE_W, BASE_H, (Color){ 20, 20, 30, 230 });
+            DrawText("ENTER YOUR NAME:", BASE_W / 2 - 160, 220, 30, RAYWHITE);
+
+            Rectangle textBox = { BASE_W / 2 - 175, 280, 350, 50 };
+            DrawRectangleRec(textBox, LIGHTGRAY);
+            DrawRectangleLines((int)textBox.x, (int)textBox.y, (int)textBox.width, (int)textBox.height, DARKGRAY);
+
+            DrawText(playerName, (int)textBox.x + 15, (int)textBox.y + 12, 28, MAROON);
+            DrawText("Press ENTER to Start Playing", BASE_W / 2 - 180, 360, 20, GRAY);
+        }
+        if(state != MAIN_MENUE && state != NAME_INPUT)
         {
             BeginMode2D(camera);
                 DrawTile(&levelAssets);
@@ -457,7 +551,9 @@ int main(void){
                 DrawTexturePro(ball.texture,src,des,origin,ball.rotation,WHITE);
             EndMode2D();
 
-            DrawText(TextFormat("Score: %d",score), BASE_W - 300,BASE_H - 680, 30, WHITE);
+            DrawText(TextFormat("Player: %s", playerName), 20, 20, 22, WHITE);
+            DrawText(TextFormat("Score: %d", score), BASE_W - 220, 20, 22, WHITE);
+            DrawText(TextFormat("High Score: %s (%d)", highScore.name, highScore.score), BASE_W - 420, 50, 20, GOLD);
         }
 
         if(state != MAIN_MENUE) DrawTexturePro(pausebutton, (Rectangle){0.0f, 0.0f, pausebutton.width, pausebutton.height}, PauseButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
