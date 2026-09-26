@@ -16,12 +16,21 @@
 #define JUMP -650.0f
 
 #define TILE_SIZE 32.0f
+
 #define MAP_ROW 8
 #define MAP_COL 105
-#define MAP_WIDTH_PX  (MAP_COL * TILE_SIZE)  
-#define MAP_HEIGHT_PX (MAP_ROW * TILE_SIZE)
+// #define MAP_WIDTH_PX  (MAP_COL * TILE_SIZE)  
+// #define MAP_HEIGHT_PX (MAP_ROW * TILE_SIZE)
 #define MAX_LEN 16
 #define SCORES "highscore.txt"
+
+#define LEVEL_ONE_ROW 8
+#define LEVEL_ONE_COL 105
+#define LEVEL_TWO_ROW 22
+#define LEVEL_TWO_COL 147
+#define MAP_WIDTH_PX  (LEVEL_ONE_COL * TILE_SIZE)  
+#define MAP_HEIGHT_PX (LEVEL_ONE_ROW * TILE_SIZE)
+
 
 typedef Vector2 v2;
 
@@ -54,7 +63,8 @@ typedef enum Gamestate{
     WIN, 
     PAUSED,
     MAIN_MENUE,
-    NAME_INPUT
+    NAME_INPUT,
+    LEVEL_SELECT
 }Gamestate;
 
 
@@ -67,50 +77,99 @@ typedef struct Levelasset{
 
 }Levelasset;
 
-const int initial_map[MAP_ROW][MAP_COL]={
-   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-    {1,1,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1},
-    {1,1,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1},
-    {1,1,0,0,0,1,1,1,1,1,1,0,0,0,1,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,1},
-    {1,1,0,0,0,1,1,1,1,1,1,0,0,0,1,1,0,0,0,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,1,1,1,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,0,1,1,4,1,1,4,1,1,0,0,0,0,0,1,1},
-    {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,4,0,0,0,1,1,0,0,4,0,0,0,1,1,0,0,0,0,1,1,2,1,1,0,0,0,0,1,1,2,1,1,0,0,5,5},
-    {1,1,0,0,0,0,0,0,0,4,0,0,0,0,1,1,0,2,0,0,0,0,0,0,0,0,0,1,1,0,0,2,0,0,0,1,1,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,2,0,0,0,2,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,5,5},
-    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+const char *level_one_map[LEVEL_ONE_ROW]={ //[MAP_COL]
+   "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+    "110001111110000000000111100000000011000111000000000000000000111000000110000001100000000000000110000000011",
+    "110001111110000000000111100000000000000110000000000000000000011000000110000001100000000000000110000000011",
+    "110001111110001100000111100000000000000110000000000000000000011001100110011001100110000000000110000000011",
+    "110001111110001100000111100111100111100110000000000000000000011001100110011001100110000000114114110000011",
+    "110000000000001100000000000110000001100000000000000000000000000001100400011004000110000112110000112110055",
+    "110000000400001102000000000110020001100000000020020002000200000001100000011000000110000111110000111110055",
+    "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
 };
-int map[MAP_ROW][MAP_COL];
+
+const char *level_two_map[LEVEL_TWO_ROW] = {
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111111111111111111111111",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000400000000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111111111111110000000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000055",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000055",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110001111111111111111111",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000000000000000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000111100000011001100000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000000110000110000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000001100000011000011",
+    "11000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000110000011000200001100011",
+    "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111114011",
+    "11000000000000000000004000110000001100000400000000000000000000000110000000000000000000011000000000000004000000000011000000000400011000000000110000011",
+    "11000000000000000000000000110000001100000000000000000000000000000110000000000000000000011000000000000000000000000011000000000000011000000000110000011",
+    "11000000000000011111111100110011000000000111100000000000000000000110000000000000000000040000000000000001100000000040000000000110011000011000110011111",
+    "11000000000000011000001100110011000000000111100000000000000000000110000000000000000000000000000000000001100000000000000000000110011001111000000000011",
+    "11000000000000011000000000000011000000000111100000000000000000000400000000000000000000011000000000000001100000000011000000000110000000011000000000011",
+    "11000000000002011000000000000011000000000111100000000000000000000000000000000000000000011000000000000001100000000011000000000110000000011000000002011",
+    "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+};
+
+
+const char **levels[2] = {level_one_map, level_two_map};
+
+int current_level = 1;
+int current_row = LEVEL_ONE_ROW;
+int current_col = LEVEL_ONE_COL;
+
+char map1[LEVEL_ONE_ROW][LEVEL_ONE_COL];
+char map2[LEVEL_TWO_ROW][LEVEL_TWO_COL];
+
+// struct level_maps{
+//     char * zerozero;
+//     int row;
+//     int col;
+// };
+
+// struct level_maps maps[2] = {
+//     {
+//     .zerozero = &map[0][0],
+//     .row = LEVEL_ONE_ROW,
+//     .col = LEVEL_ONE_COL,
+//     },
+//     {
+//         .zerozero = &map2[0][0],
+//         .row = LEVEL_TWO_ROW,
+//         .col = LEVEL_TWO_COL
+//     }
+// };
+
+char *maps[2] = {&map1[0][0], &map2[0][0]};
+
+
+
 
 /* scoring */ int score = 0;
 
+v2 starting_positions[2] = {
+    (v2){2.5f*TILE_SIZE,1.5f*TILE_SIZE},
+    (v2){ 2.5f * TILE_SIZE, 13.5f * TILE_SIZE + 100}
+};
 
-// typedef struct Platform{
-//     Rectangle rect;
-//     platformtype type;
+void Reset(Ball *b,Gamestate *state){
 
-// }Platform;
-
-
-// Platform level[PLATFORMS] = {
-//     {{   0, 650, 400, 70 }, PT_NORMAL },
-//     {{ 500, 600, 200, 30 }, PT_SPRING },
-//     {{ 800, 420, 150, 30 }, PT_NORMAL },
-//     {{ 950, 350, 150, 30 }, PT_SPIKE  },
-//     {{980,  320, 150, 30 }, PT_GOAL   },
-// };
-void Reset(Ball *b){
-
-    b->position=(v2){2.5f*TILE_SIZE,1.5f*TILE_SIZE};
+    b->position=starting_positions[current_level - 1];
     b->velocity=(v2){0.0f,0.0f};
     b->rotation = 0.0f;
-    for(int r=0; r < MAP_ROW; r++){
-        for(int c=0; c < MAP_COL; c++){
-            map[r][c]=initial_map[r][c];
+    for(int r=0; r < current_row; r++){
+        for(int c=0; c < current_col; c++){
+            maps[current_level - 1][r * current_col + c]=levels[current_level-1][r][c];
         }
     }
     score = 0;
+    *state = PLAYING;
 }
 
 
-void BallPlatformCollision(Ball *b, Rectangle tilerect, int tiletype, Gamestate *state){
+void BallPlatformCollision(Ball *b, Rectangle tilerect, char tiletype, Gamestate *state){
 
     float ClosestX = Clamp(b->position.x,tilerect.x,tilerect.x+tilerect.width);
     float ClosestY = Clamp(b->position.y,tilerect.y,tilerect.y+tilerect.height);
@@ -121,7 +180,6 @@ void BallPlatformCollision(Ball *b, Rectangle tilerect, int tiletype, Gamestate 
     float dis_sq = dx*dx +dy*dy;
     if(b->radius*b->radius <= dis_sq ){
         return;
-
     }
     float dis = sqrtf(dis_sq);
     v2 normal = (dis > 0.00001f)?(v2){dx/dis,dy/dis}:(v2){0,-1};
@@ -129,13 +187,13 @@ void BallPlatformCollision(Ball *b, Rectangle tilerect, int tiletype, Gamestate 
     b->position.x += normal.x*penetration;
     b->position.y += normal.y*penetration;
 
-    if(tiletype == 2) {*state = DEAD; return;}
-    if(tiletype == 5) {*state = WIN; return;}
+    if(tiletype == '2') {*state = DEAD; return;}
+    if(tiletype == '5') {*state = WIN; return;}
 
     float Normalvel = b->velocity.x*normal.x + b->velocity.y*normal.y;
 
     if(Normalvel < 0){
-        if(tiletype==3 && normal.y < -0.5f){
+        if(tiletype=='3' && normal.y < -0.5f){
             b->velocity.y = -900.0f;
         }else{
             b->velocity.x -= (1+RESTITUTION)*Normalvel*normal.x;
@@ -181,21 +239,21 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
     b->rotation += (b->velocity.x/b->radius)*RAD2DEG*dt;
     b->grounded = false;
 
-    for(int r=0; r < MAP_ROW; r++){
-        for(int c=0; c < MAP_COL; c++){
-            int tile= map[r][c];
-            if(tile == 0) continue;
+    for(int r=0; r < current_row; r++){
+        for(int c=0; c < current_col; c++){
+            char tile= maps[current_level - 1][r * current_col + c];
+            if(tile == '0') continue;
 
             
             Rectangle tilerect  = {c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE};
-            if(tile==4){
+            if(tile=='4'){
                 if(CheckCollisionCircleRec(b->position,b->radius,tilerect)){
-                    map[r][c] = 0;
+                    maps[current_level - 1][r * current_col + c] = '0';
                     score+=500;
                 }
                 continue;
             }
-            if(tile == 2) {
+            if(tile == '2') {
             Rectangle spikehit = {
                 tilerect.x + (TILE_SIZE * 0.25f), 
                 tilerect.y + (TILE_SIZE * 0.25f), 
@@ -220,20 +278,17 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
 
     
 
-    // if(b->position.x-b->radius < 0){
-    //     b->position.x = b->radius;
-    //     b->velocity.x = -b->velocity.x*RESTITUTION;
-    // }
-    if (b->position.x - b->radius < TILE_SIZE) {
-        b->position.x = TILE_SIZE + b->radius;
+   
+    if (b->position.x - b->radius < 0) {
+        b->position.x = b->radius;
         b->velocity.x = 0;
     }
-    if (b->position.x + b->radius > MAP_WIDTH_PX - TILE_SIZE) {
-        b->position.x = MAP_WIDTH_PX - TILE_SIZE - b->radius;
+    if (b->position.x + b->radius > current_col*TILE_SIZE - TILE_SIZE) {//was max width
+        b->position.x = current_col*TILE_SIZE - TILE_SIZE - b->radius;//wasmax width
         b->velocity.x = 0;
     }
 
-    if(b->position.y > MAP_HEIGHT_PX+50.0f){
+    if(b->position.y > current_row*TILE_SIZE+50.0f){//was maxheight
         *state = DEAD;
     }
     ///Extra
@@ -245,26 +300,23 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
 }
 
 void DrawTile(Levelasset *lvl){
-    for(int r=0; r < MAP_ROW; r++){
-        for(int c=0; c < MAP_COL; c++){
-            int tile = map[r][c];
-            v2 pos = {c*TILE_SIZE,r*TILE_SIZE}; 
-            Rectangle des = {c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE};
-            v2 origin = {0.0f,0.0f};
+    for(int r=0; r < current_row; r++){
+        for(int c=0; c < current_col; c++){
+            char tile = maps[current_level - 1][r * current_col + c];
+
+
             Texture2D *tex=NULL;
 
             switch(tile){
-                case 1:tex=&lvl->brick;break;
-                case 2:tex=&lvl->spike;break;
-                case 3:tex=&lvl->spring;break;
-                case 4:tex=&lvl->ring;break;
-                case 5:tex=&lvl->goal;break;
+                case '1':tex=&lvl->brick;break;
+                case '2':tex=&lvl->spike;break;
+                case '3':tex=&lvl->spring;break;
+                case '4':tex=&lvl->ring;break;
+                case '5':tex=&lvl->goal;break;
                 default:break;
-
             }
             if(tex != NULL){
-                Rectangle src={0.0f,0.0f,(float)tex->width,(float)tex->height};
-                DrawTexturePro(*tex,src,des,origin,0.0,WHITE);
+                DrawTexturePro(*tex,(Rectangle){0.0f,0.0f,(float)tex->width,(float)tex->height},(Rectangle){c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE},(v2){0.0f,0.0f},0.0,WHITE);
             }
         }
     }
@@ -309,10 +361,9 @@ void UpdateNameInput(char *nameBuffer, int *letterCount, Gamestate *state) {
             nameBuffer[*letterCount + 1] = '\0';
             (*letterCount)++;
         }
-        key = GetCharPressed(); 
+        key = GetCharPressed();
     }
 
-  
     if (IsKeyPressed(KEY_BACKSPACE)) {
         (*letterCount)--;
         if (*letterCount < 0) *letterCount = 0;
@@ -320,7 +371,7 @@ void UpdateNameInput(char *nameBuffer, int *letterCount, Gamestate *state) {
     }
 
     if (IsKeyPressed(KEY_ENTER) && *letterCount > 0) {
-        *state = PLAYING;
+        *state = LEVEL_SELECT;
     }
 }
 
@@ -367,10 +418,36 @@ Button MenuePlayButton = {
     .state = NORMAL
 };
 
+Button LevelSelectButton = {
+    .rect = (Rectangle){ 0.46*BASE_W, 0.54*BASE_H, 0.21*BASE_H, 0.21*BASE_H},
+    .state = NORMAL
+};
 
-    
 
 
+Rectangle LevelSelectionRect = (Rectangle){ 0.3125f * BASE_W, 0.2222f * BASE_H, 0.375f * BASE_W - 30, 0.5556f * BASE_H - 100};
+
+
+Button Level1Button = {
+    .rect = (Rectangle){ 0.334f * BASE_W, 0.278f * BASE_H, 0.16f * BASE_H, 0.16f * BASE_H },
+    .state = NORMAL
+};
+
+Button Level2Button = {
+    .rect = (Rectangle){ 0.443f * BASE_W, 0.278f * BASE_H, 0.16f * BASE_H, 0.16f * BASE_H },
+    .state = NORMAL
+};
+
+Button Level3Button = {
+    .rect = (Rectangle){ 0.552f * BASE_W, 0.278f * BASE_H, 0.16f * BASE_H, 0.16f * BASE_H },
+    .state = NORMAL
+};
+
+
+Button LevelBackButton = {
+    .rect = (Rectangle){ 0.334f * BASE_W, 0.625f * BASE_H - 90, 0.096f * BASE_H, 0.096f * BASE_H },
+    .state = NORMAL
+};
 int main(void){
 // INIT
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -388,10 +465,10 @@ int main(void){
     Texture2D retrybuttonsprite = LoadTexture("assets/images/retry-button.png");
     Texture2D resumebuttonsprite = LoadTexture("assets/images/resume.png");
     Texture2D homebuttonsprite = LoadTexture("assets/images/home.png");
-    Texture2D logo = LoadTexture("assets/images/title_logo.jpg");
-    Texture2D menueplaybutton = LoadTexture("assets/images/play-button.png");
-    Texture2D pausebutton = LoadTexture("assets/images/PauseButton.png");
-
+    Texture2D logo = LoadTexture("assets/images/title-logo.png");
+    Texture2D menueplaysprite = LoadTexture("assets/images/play-button.png");
+    Texture2D pausesprite = LoadTexture("assets/images/PauseButton.png");
+    Texture2D levelselectsprite = LoadTexture("assets/images/level-select-button.png");
     Ball ball = {
                 .radius=14.0f,
                 .rotation = 0.0f,
@@ -410,7 +487,7 @@ int main(void){
     Rectangle src= {0.0f,0.0f,(float)ball.texture.width,(float)ball.texture.height};
     Camera2D camera = { 0 };
     camera.offset = (v2){ BASE_W / 2.0f, BASE_H / 2.0f };
-    camera.zoom = 1.8f;
+    camera.zoom = 1.0f;
     
     
 
@@ -422,24 +499,26 @@ int main(void){
         if(state ==PLAYING){
             UpdateBall(&ball,dt,&state); 
         }else if(IsKeyPressed(KEY_R)){
-            Reset(&ball);
-            state = PLAYING;
-
+            Reset(&ball, &state);
         }
+
+//Camera Update
         camera.target = ball.position;
         float min_camera_x = BASE_W / (2.0f * camera.zoom);
-        float max_camera_x = MAP_WIDTH_PX - BASE_W / (2.0f * camera.zoom);
+        float max_camera_x = current_col*TILE_SIZE - BASE_W / (2.0f * camera.zoom);// max width
 
         
-        if (max_camera_x < min_camera_x) {
-            camera.target.x = MAP_WIDTH_PX / 2.0f;
-        } else {
-            camera.target.x = Clamp(ball.position.x, min_camera_x, max_camera_x);
-        }
+        // if (max_camera_x < min_camera_x) {
+        //     camera.target.x = MAP_WIDTH_PX / 2.0f;
+        // } else 
+        
+        camera.target.x = Clamp(ball.position.x, min_camera_x, max_camera_x);
+        
 
         
         camera.target.y = ball.position.y;
-        float map_center_y = MAP_HEIGHT_PX / 2.0f;
+        float map_center_y = (current_row * TILE_SIZE) / 2.0f;
+        //max height
         camera.target.y = map_center_y;
     
 //Button Update
@@ -449,12 +528,12 @@ int main(void){
         {
             if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
-                PauseButton.state = PRESSED;
+                // PauseButton.state = PRESSED;
                 state = PAUSED;
             }
-            else PauseButton.state = NORMAL;
+            // else PauseButton.state = NORMAL;
         }
-        else PauseButton.state = NORMAL;
+        // else PauseButton.state = NORMAL;
 
 
         if(state == PAUSED)
@@ -463,42 +542,48 @@ int main(void){
             {
                 if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
-                    ResumeButton.state = PRESSED;
+                    // ResumeButton.state = PRESSED;
                     state = PLAYING;
-                    ResumeButton.state = NORMAL;
+                    // ResumeButton.state = NORMAL;
                 }
-                else ResumeButton.state = NORMAL;
+                // else ResumeButton.state = NORMAL;
             }
-            else ResumeButton.state = NORMAL;
+            // else ResumeButton.state = NORMAL;
 
             if(CheckCollisionPointRec(mouse, RetryButton.rect))
             {
                 if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
-                    RetryButton.state = PRESSED;
-                    Reset(&ball);
-                    state = PLAYING;
+                    // RetryButton.state = PRESSED;
+                    Reset(&ball,&state);
                 }
-                else RetryButton.state = NORMAL;
+                // else RetryButton.state = NORMAL;
             }
-            else RetryButton.state = NORMAL;
+            // else RetryButton.state = NORMAL;
 
             if(CheckCollisionPointRec(mouse, HomeButton.rect))
             {
                 if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 {
-                    state = MAIN_MENUE;
-                    HomeButton.state = PRESSED;
+                    state = LEVEL_SELECT;
+                    // HomeButton.state = PRESSED;
                 }
-                else HomeButton.state = NORMAL;
+                // else HomeButton.state = NORMAL;
             }
-            else HomeButton.state = NORMAL;
-        }
+            // else HomeButton.state = NORMAL;
 
-        if(state == MAIN_MENUE)
+            // if(CheckCollisionPointRec(mouse, LevelSelectButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            // {
+            //     state = LEVEL_SELECT;
+            // }
+
+
+        }
+        else if(state == MAIN_MENUE)
         {
             if(CheckCollisionPointRec(mouse, MenuePlayButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
+
                 state = NAME_INPUT;
                 letterCount = 0;
                 playerName[0] = '\0';
@@ -507,7 +592,33 @@ int main(void){
         else if (state == NAME_INPUT) {
             UpdateNameInput(playerName, &letterCount, &state);
             if (state == PLAYING) {
-                Reset(&ball);
+                Reset(&ball,&state);
+
+                state = LEVEL_SELECT;
+                // Reset(&ball,&state);
+            }
+        }
+        else if(state == LEVEL_SELECT)
+        {
+            if(CheckCollisionPointRec(mouse, Level1Button.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                current_level = 1;
+                current_row = LEVEL_ONE_ROW;
+                current_col = LEVEL_ONE_COL;
+                Reset(&ball,&state);
+
+            }
+            else if(CheckCollisionPointRec(mouse, Level2Button.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                current_level = 2;
+                current_row = LEVEL_TWO_ROW;
+                current_col = LEVEL_TWO_COL;
+                    Reset(&ball, &state);
+            }
+            else if(CheckCollisionPointRec(mouse, LevelBackButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                state = MAIN_MENUE;
+
             }
         }
         else if (state == PLAYING) {
@@ -519,7 +630,7 @@ int main(void){
             }
         }
         else if (IsKeyPressed(KEY_R)) {
-            Reset(&ball);
+            Reset(&ball,&state);
             state = PLAYING;
         }
 
@@ -531,6 +642,7 @@ int main(void){
 
         BeginDrawing();
         ClearBackground((Color){174, 206, 240, 255});
+
         if (state == NAME_INPUT) {
             DrawRectangle(0, 0, BASE_W, BASE_H, (Color){ 20, 20, 30, 230 });
             DrawText("ENTER YOUR NAME:", BASE_W / 2 - 160, 220, 30, RAYWHITE);
@@ -543,6 +655,9 @@ int main(void){
             DrawText("Press ENTER to Start Playing", BASE_W / 2 - 180, 360, 20, GRAY);
         }
         if(state != MAIN_MENUE && state != NAME_INPUT)
+
+        if(state != MAIN_MENUE && state != LEVEL_SELECT)
+
         {
             BeginMode2D(camera);
                 DrawTile(&levelAssets);
@@ -556,7 +671,7 @@ int main(void){
             DrawText(TextFormat("High Score: %s (%d)", highScore.name, highScore.score), BASE_W - 420, 50, 20, GOLD);
         }
 
-        if(state != MAIN_MENUE) DrawTexturePro(pausebutton, (Rectangle){0.0f, 0.0f, pausebutton.width, pausebutton.height}, PauseButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+        if(state != MAIN_MENUE) DrawTexturePro(pausesprite, (Rectangle){0.0f, 0.0f, pausesprite.width, pausesprite.height}, PauseButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
         
         if(state == PAUSED)
         {
@@ -565,6 +680,7 @@ int main(void){
             DrawTexturePro(resumebuttonsprite, (Rectangle){0.0f, 0.0f, resumebuttonsprite.width, resumebuttonsprite.height}, ResumeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             DrawTexturePro(retrybuttonsprite, (Rectangle){0.0f, 0.0f, retrybuttonsprite.width, retrybuttonsprite.height}, RetryButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             DrawTexturePro(homebuttonsprite, (Rectangle){0.0f, 0.0f, homebuttonsprite.width, homebuttonsprite.height}, HomeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+            // DrawTexturePro(levelselectsprite, (Rectangle){0.0f, 0.0f, levelselectsprite.width, levelselectsprite.height}, LevelSelectButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
 
         }
 
@@ -579,29 +695,33 @@ int main(void){
                 WHITE
             );
 
-            DrawTexturePro(menueplaybutton, 
-            (Rectangle){0.0f, 0.0f, menueplaybutton.width, menueplaybutton.height},
+            DrawTexturePro(menueplaysprite, 
+            (Rectangle){0.0f, 0.0f, menueplaysprite.width, menueplaysprite.height},
             MenuePlayButton.rect,
             (v2){0.0f, 0.0f},
             0.0f,
             WHITE
             );
-
-
             // if(IsKeyDown(KEY_ENTER)) 
             // {
             // state = PLAYING;
             // Reset(&ball);
             // }
+        }
+
+        if(state == LEVEL_SELECT)
+        {
+                DrawRectangleRec(LevelSelectionRect, BLACK);
+                DrawRectangleRec(Level1Button.rect, WHITE);
+                DrawRectangleRec(Level2Button.rect, WHITE);
+                DrawRectangleRec(Level3Button.rect, WHITE);
+                DrawRectangleRec(LevelBackButton.rect, YELLOW);
 
 
         }
+
         if(state == DEAD) DrawText("GAME OVER",480,20,24,RED);
-        if(state == WIN) DrawText("LEVEL CLEARED",480,20,24,GOLD);
-
-
-        
-        
+        if(state == WIN) DrawText("LEVEL CLEARED",480,20,24,GOLD);    
         EndDrawing();
 
     }
@@ -617,8 +737,9 @@ int main(void){
     UnloadTexture(resumebuttonsprite);
     UnloadTexture(homebuttonsprite);
     UnloadTexture(logo);
-    UnloadTexture(menueplaybutton);
-    UnloadTexture(pausebutton);
+    UnloadTexture(menueplaysprite);
+    UnloadTexture(pausesprite);
+    UnloadTexture(levelselectsprite);
     CloseWindow();
 
 
