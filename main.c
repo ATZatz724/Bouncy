@@ -7,7 +7,7 @@
 #define BASE_H 720
 #define GRAVITY 1500.0f
 #define FLOOR_Y 650.0f
-#define RESTITUTION 0.6f
+#define RESTITUTION 0.4f
 #define PLATFORMS 5
 #define MAX_ACC 900.0f
 #define MAX_SPEED 260.0f
@@ -319,7 +319,9 @@ void Reset(Ball *b,Gamestate *state){
     *state = PLAYING;
 }
 
-
+bool coin_collected = false;
+bool ball_popped = false;
+bool level_passed = false;
 void BallPlatformCollision(Ball *b, Rectangle tilerect, char tiletype, Gamestate *state){
 
     float ClosestX = Clamp(b->position.x,tilerect.x,tilerect.x+tilerect.width);
@@ -339,7 +341,7 @@ void BallPlatformCollision(Ball *b, Rectangle tilerect, char tiletype, Gamestate
     b->position.y += normal.y*penetration;
 
     if(tiletype == '2') {*state = DEAD; return;}
-    if(tiletype == '5') {*state = WIN; return;}
+    if(tiletype == '5') {*state = WIN; level_passed = true;return;}
 
     float Normalvel = b->velocity.x*normal.x + b->velocity.y*normal.y;
 
@@ -358,8 +360,6 @@ void BallPlatformCollision(Ball *b, Rectangle tilerect, char tiletype, Gamestate
     }
 
 }
-
-bool coin_collected = false;
 void UpdateBall(Ball *b, float dt,Gamestate *state)
 {
 
@@ -415,6 +415,7 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
 
             if(CheckCollisionCircleRec(b->position, b->radius, spikehit)) {
                 *state = DEAD;
+                ball_popped = true;
 
             }
             continue;
@@ -503,6 +504,7 @@ void UpdateSpider(Gamestate *state,Ball b,float dt)
             if(CheckCollisionCircleRec(b.position, b.radius, all_spiders[current_level - 2][i].rect))
             {
                 *state = DEAD;
+                ball_popped = true;
             }
             all_spiders[current_level - 2][i].rect.y += all_spiders[current_level - 2][i].speed*dt;
 
@@ -677,7 +679,8 @@ int main(void){
     Texture2D poppedballsprite = LoadTexture("assets/images/pop-red-ball.png");
     Texture2D backbuttonsprite = LoadTexture("assets/images/back-button.png");
     Sound coincollectaudio = LoadSound("assets/audios/coins.mp3");
-
+    Sound ballpoppedaudio = LoadSound("assets/audios/pop.mp3");
+    Sound levelpassedaudio = LoadSound("assets/audios/universfield-next-level-114480.mp3");
 
     Font levelfont = LoadFont("assets/fonts/Zhetia.otf");
 
@@ -847,10 +850,22 @@ int main(void){
         }
         else if (state == PLAYING) {
             UpdateBall(&ball, dt, &state);
+            UpdateSpider(&state, ball, dt);
             if(coin_collected == true)
             {
                 PlaySound(coincollectaudio);
                 coin_collected = false;
+            }
+            if(ball_popped == true)
+            {
+                PlaySound(ballpoppedaudio);
+                ball_popped = false;
+            }
+            if(level_passed == true)
+            {
+                PlaySound(levelpassedaudio);
+                level_passed = false;
+
             }
             
             // Check for game end & save score
@@ -886,7 +901,7 @@ int main(void){
             BeginMode2D(camera);
                 DrawTile(&levelAssets);
                 Rectangle des = {ball.position.x,ball.position.y,ball.radius*2.0f,ball.radius*2.0f};
-                if(state == PLAYING)
+                if(state == PLAYING || state == WIN)
                     DrawTexturePro(ball.texture,src,des,(v2){ball.radius, ball.radius},ball.rotation,WHITE);
                 else if(state == DEAD)
                 {
@@ -894,7 +909,7 @@ int main(void){
                 }
 
                 DrawSpider(spidersprite);
-                UpdateSpider(&state, ball, dt);
+                
 
             EndMode2D();
 
@@ -1031,6 +1046,8 @@ int main(void){
     UnloadTexture(poppedballsprite);
     UnloadTexture(backbuttonsprite);
     UnloadFont(levelfont);
+    UnloadSound(ballpoppedaudio);
+    UnloadSound(levelpassedaudio);
     CloseAudioDevice();
     CloseWindow();
 
