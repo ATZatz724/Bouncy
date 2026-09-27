@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
 #define BASE_W 1280
 #define BASE_H 720
 #define GRAVITY 1500.0f
@@ -14,22 +13,20 @@
 #define MAX_SPEED 260.0f
 #define FRICTION 0.9f
 #define JUMP -650.0f
-
-#define TILE_SIZE 32.0f
-
-#define MAP_ROW 8
-#define MAP_COL 105
-// #define MAP_WIDTH_PX  (MAP_COL * TILE_SIZE)  
-// #define MAP_HEIGHT_PX (MAP_ROW * TILE_SIZE)
+#define SPIDER_SPEED 60
 #define MAX_LEN 16
 #define SCORES "highscore.txt"
 
+#define TILE_SIZE 32.0f
 #define LEVEL_ONE_ROW 8
 #define LEVEL_ONE_COL 105
 #define LEVEL_TWO_ROW 22
 #define LEVEL_TWO_COL 147
+#define LEVEL_THREE_ROW 36
+#define LEVEL_THREE_COL 134
 #define MAP_WIDTH_PX  (LEVEL_ONE_COL * TILE_SIZE)  
 #define MAP_HEIGHT_PX (LEVEL_ONE_ROW * TILE_SIZE)
+
 
 
 typedef Vector2 v2;
@@ -55,7 +52,12 @@ typedef struct ScoreRecord{
     int score;
 }ScoreRecord;
 
-
+typedef enum platformtype{
+    PT_NORMAL,
+    PT_SPRING,
+    PT_SPIKE,
+    PT_GOAL
+}platformtype;
 
 typedef enum Gamestate{
     PLAYING,
@@ -63,8 +65,8 @@ typedef enum Gamestate{
     WIN, 
     PAUSED,
     MAIN_MENUE,
-    NAME_INPUT,
-    LEVEL_SELECT
+    LEVEL_SELECT,
+    NAME_INPUT
 }Gamestate;
 
 
@@ -77,8 +79,96 @@ typedef struct Levelasset{
 
 }Levelasset;
 
+
+
+int spider_num[] = {7,0};
+
+
+
+
+
+
+typedef struct spider{
+    Rectangle rect;
+    int speed;
+}spider;
+
+const spider level_two_spiders[] = 
+{
+    {
+        .rect = (Rectangle){2*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2, 2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){4*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2, 2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){51*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){57*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){63*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){97*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){91*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    }
+};
+
+spider level_two_spiders_buffer[] =
+{
+    {
+        .rect = (Rectangle){2*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2, 2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){4*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2, 2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){51*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){57*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){63*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){97*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    },
+    {
+        .rect = (Rectangle){91*TILE_SIZE+2, 15*TILE_SIZE+2, 2*TILE_SIZE-2,2*TILE_SIZE-2},
+        .speed = SPIDER_SPEED
+    }
+};
+
+spider *all_spiders[] = 
+{
+    level_two_spiders_buffer
+};
+
+
+
+
+
+
 const char *level_one_map[LEVEL_ONE_ROW]={ //[MAP_COL]
-   "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+    "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
     "110001111110000000000111100000000011000111000000000000000000111000000110000001100000000000000110000000011",
     "110001111110000000000111100000000000000110000000000000000000011000000110000001100000000000000110000000011",
     "110001111110001100000111100000000000000110000000000000000000011001100110011001100110000000000110000000011",
@@ -106,15 +196,57 @@ const char *level_two_map[LEVEL_TWO_ROW] = {
     "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111114011",
     "11000000000000000000004000110000001100000400000000000000000000000110000000000000000000011000000000000004000000000011000000000400011000000000110000011",
     "11000000000000000000000000110000001100000000000000000000000000000110000000000000000000011000000000000000000000000011000000000000011000000000110000011",
-    "11000000000000011111111100110011000000000111100000000000000000000110000000000000000000040000000000000001100000000040000000000110011000011000110011111",
-    "11000000000000011000001100110011000000000111100000000000000000000110000000000000000000000000000000000001100000000000000000000110011001111000000000011",
-    "11000000000000011000000000000011000000000111100000000000000000000400000000000000000000011000000000000001100000000011000000000110000000011000000000011",
-    "11000000000002011000000000000011000000000111100000000000000000000000000000000000000000011000000000000001100000000011000000000110000000011000000002011",
+    "11000000000000011111111100110011000000000111100000000000000000000110000000001100000000040000000000000001100000000040000000000110011000011000110011111",
+    "11000000000000011000001100110011000000000111100000000000000000000110000000011110000000000000000000000001100000000000000000000110011001111000000000011",
+    "11000000000000011000000000000011000000000111100000000000000000000400000000111111000000011000000000000001100000000011000000000110000000011000000000011",
+    "11000000000002011000000000000011000000000111100000000000000000000000000001111111100000011000000000000001100000000011000000000110000000011000000002011",
     "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
 };
 
+const char *level_three_map[LEVEL_THREE_ROW] = {
+    "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+    "11404000001120000000000000000000000000000001110000000000001100000011100000011111110000000000200000000000000000000000000000000000000011",
+    "11000000001100000000000000000000000000000000110000000000001100000011000000001111100000000000000000000000000000001100110000000000000011",
+    "11000000001100000000001100000000000000000000000000000000001100000000000000000000000000000000000000000000000000000000000000011000000011",
+    "11000000001110000000011100000000000000000000000000000000001100000000000000000000000000000000000000000000000000000011000000000000110011",
+    "11000000001111000000111100000000000000000000110000000000015500000011000000001111100000001100000001111111111111110000000110000001100011",
+    "11000000001111100001111100000000000000000001110000000000115500000011100000011111110000011110000011111111111111110000000000114400004011",
+    "11111000001111110011111111111111111111111111111111111111111111111111111111111111111111111111000111111111111111111111111111111111111111",
+    "11000000000000000000000000000001100001100000000000004000004000011111104001111111111111111111000110000000000000110000000000000000000000",
+    "11000000000000000000000000000001100001100000000000000000000000001111000000111111111111111111000110000000000000110000000000000000000000",
+    "11000011000000000000000000000000000000000000000000000000000000000111000000111111111111111111000110000000000000110000000000000000000000",
+    "11000040001100000000001111000000000000000000110000000000000000000011000000111111111111111111000110000000000000110000000000000000000000",
+    "11000000001110000000011111000001100001100000111000000000000000000000000000111111111111111111000110000000000000110000000000000000000000",
+    "11000000001111000000111111000001100001140004111100000004000000000000000000111111111111111111000110000000000000110000000000000000000000",
+    "11111111111111111111111111111111100001111111111111111111111111111111000000111111111111111111000110000000000000110000000000000000000000",
+    "00000000000000000000001100000000000000000000110000000000000000000011100000111111111111111111000111000000001111110000000000000000000000",
+    "00000000000000000000001100000000000000000000110000000000000000000011100000111111111111111111000111000000001111110000000000000000000000",
+    "00000000000000000000001100000000000000000000110000000000000000000011100000111111111111111111000110000000000111110000000000000000000000",
+    "00000000000000000000001133333333333333330000110000000000000000000011100000111111111111111111000110000000000011110000000000000000000000",
+    "00000000000000000000001120000000000000000000110000000000000000000011100000111111111111111111000111000000000001110000000000000000000000",
+    "00000000000000000000001100000000000000000000110000000000000000000011100000111111111111111111000111100000000000110000000000000000000000",
+    "00000000000000000000001111111111111111111111110000000000000000000011100000111111111111111111000111110000000000110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111111000000001110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111111000000001110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111110000000000110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111100000000000110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111000000000001110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000110000000000011110000000000000000000000",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111111111111111111111111111111111111111",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000110000000000000110000000000000000000011",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000110000000000000110000000000000000020011",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000110000000000000110000000000000000000011",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000111111111111111111000111111111111111110000000000000000000011",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000000000000000000000000000000000000000000000000000400000000011",
+    "00000000000000000000000000000000000000000000000000000000000000000011100000000000000000000000000000000000000000000000000000110000000011",
+    "00000000000000000000000000000000000000000000000000000000000000000011111111111111111111111111111111111111111111111111111111111111111111",
+};
 
-const char **levels[2] = {level_one_map, level_two_map};
+
+
+
+
+const char **levels[3] = {level_one_map, level_two_map, level_three_map};
 
 int current_level = 1;
 int current_row = LEVEL_ONE_ROW;
@@ -122,6 +254,7 @@ int current_col = LEVEL_ONE_COL;
 
 char map1[LEVEL_ONE_ROW][LEVEL_ONE_COL];
 char map2[LEVEL_TWO_ROW][LEVEL_TWO_COL];
+char map3[LEVEL_THREE_ROW][LEVEL_THREE_COL];
 
 // struct level_maps{
 //     char * zerozero;
@@ -142,16 +275,17 @@ char map2[LEVEL_TWO_ROW][LEVEL_TWO_COL];
 //     }
 // };
 
-char *maps[2] = {&map1[0][0], &map2[0][0]};
+char *maps[3] = {&map1[0][0], &map2[0][0], &map3[0][0]};
 
 
 
 
 /* scoring */ int score = 0;
 
-v2 starting_positions[2] = {
+v2 starting_positions[3] = {
     (v2){2.5f*TILE_SIZE,1.5f*TILE_SIZE},
-    (v2){ 2.5f * TILE_SIZE, 13.5f * TILE_SIZE + 100}
+    (v2){ 2.5f * TILE_SIZE + 160, 13.5f * TILE_SIZE + 100},
+    (v2){ 38.5f * TILE_SIZE, 1.5f * TILE_SIZE }
 };
 
 void Reset(Ball *b,Gamestate *state){
@@ -164,6 +298,23 @@ void Reset(Ball *b,Gamestate *state){
             maps[current_level - 1][r * current_col + c]=levels[current_level-1][r][c];
         }
     }
+
+    //reset spiders
+    for(int i = 0;i<spider_num[current_level - 2];i++)
+    {
+        if(current_level == 2)
+        {
+            all_spiders[current_level - 2][i].rect.x = level_two_spiders[i].rect.x;
+            all_spiders[current_level - 2][i].rect.y = level_two_spiders[i].rect.y;
+            all_spiders[current_level - 2][i].speed = level_two_spiders[i].speed;
+        }
+        else if(current_level == 3)
+        {
+
+        }
+    }
+
+
     score = 0;
     *state = PLAYING;
 }
@@ -243,9 +394,8 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
         for(int c=0; c < current_col; c++){
             char tile= maps[current_level - 1][r * current_col + c];
             if(tile == '0') continue;
-
-            
             Rectangle tilerect  = {c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE};
+
             if(tile=='4'){
                 if(CheckCollisionCircleRec(b->position,b->radius,tilerect)){
                     maps[current_level - 1][r * current_col + c] = '0';
@@ -268,6 +418,10 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
             continue;
         }
             BallPlatformCollision(b,tilerect,tile,state);
+
+
+
+
         }
     }
     
@@ -279,18 +433,20 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
     
 
    
-    if (b->position.x - b->radius < 0) {
-        b->position.x = b->radius;
-        b->velocity.x = 0;
-    }
-    if (b->position.x + b->radius > current_col*TILE_SIZE - TILE_SIZE) {//was max width
-        b->position.x = current_col*TILE_SIZE - TILE_SIZE - b->radius;//wasmax width
-        b->velocity.x = 0;
-    }
+    // if (b->position.x - b->radius < 0) {
+    //     b->position.x = b->radius;
+    //     b->velocity.x = 0;
+    // }
+    // if (b->position.x + b->radius > current_col*TILE_SIZE - TILE_SIZE) {//was max width
+    //     b->position.x = current_col*TILE_SIZE - TILE_SIZE - b->radius;//wasmax width
+    //     b->velocity.x = 0;
+    // }
 
-    if(b->position.y > current_row*TILE_SIZE+50.0f){//was maxheight
-        *state = DEAD;
-    }
+    // if(b->position.y > current_row*TILE_SIZE+50.0f){//was maxheight
+    //     *state = DEAD;
+    // }
+
+
     ///Extra
     // if(b->position.y > BASE_H){
     //     b->position.y =-10;
@@ -298,6 +454,9 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
     // }
 
 }
+
+
+
 
 void DrawTile(Levelasset *lvl){
     for(int r=0; r < current_row; r++){
@@ -320,7 +479,49 @@ void DrawTile(Levelasset *lvl){
             }
         }
     }
+}
 
+void DrawSpider(Texture2D spidersprite)
+{
+    if(current_level > 1)
+    {
+        for(int i = 0;i<spider_num[current_level - 2];i++)
+        {
+            DrawTexturePro(spidersprite, (Rectangle){0.0f, 0.0f, spidersprite.width, spidersprite.height}, all_spiders[current_level - 2][i].rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+        }
+    }
+}
+
+void UpdateSpider(Gamestate *state,Ball b,float dt)
+{
+    if(current_level > 1 && *state == PLAYING)
+    {
+        for(int i = 0;i<spider_num[current_level - 2];i++)
+        {
+            if(CheckCollisionCircleRec(b.position, b.radius, all_spiders[current_level - 2][i].rect))
+            {
+                *state = DEAD;
+            }
+            all_spiders[current_level - 2][i].rect.y += all_spiders[current_level - 2][i].speed*dt;
+
+            for(int r = 0;r<current_row;r++)
+            {
+                for(int c = 0;c<current_col;c++)
+                {
+                    Rectangle tilerect  = {c*TILE_SIZE,r*TILE_SIZE,TILE_SIZE,TILE_SIZE};
+                    
+                    if(CheckCollisionRecs(tilerect, all_spiders[current_level - 2][i].rect) && maps[current_level - 1][r * current_col + c] == '1')
+                    {
+                        all_spiders[current_level - 2][i].speed *= -1;
+                        if(all_spiders[current_level - 2][i].rect.y - tilerect.y < -all_spiders[current_level - 2][i].rect.y + tilerect.y)
+                            all_spiders[current_level - 2][i].rect.y = tilerect.y- 2*TILE_SIZE - 2;
+                        else 
+                            all_spiders[current_level - 2][i].rect.y = tilerect.y + TILE_SIZE + 2;
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Score file Handling
@@ -374,7 +575,6 @@ void UpdateNameInput(char *nameBuffer, int *letterCount, Gamestate *state) {
         *state = LEVEL_SELECT;
     }
 }
-
 
 typedef enum ButtonState
 {
@@ -459,6 +659,7 @@ int main(void){
 
     char playerName[MAX_LEN + 1] = "\0";
     int letterCount = 0;
+    
     Texture2D ballsprite = LoadTexture("assets/images/red-ball.png");
 
 
@@ -469,6 +670,7 @@ int main(void){
     Texture2D menueplaysprite = LoadTexture("assets/images/play-button.png");
     Texture2D pausesprite = LoadTexture("assets/images/PauseButton.png");
     Texture2D levelselectsprite = LoadTexture("assets/images/level-select-button.png");
+    Texture2D spidersprite = LoadTexture("assets/images/spider.png");
     Ball ball = {
                 .radius=14.0f,
                 .rotation = 0.0f,
@@ -478,7 +680,7 @@ int main(void){
     Levelasset levelAssets = {
         .brick  = LoadTexture("assets/images/tile_brick.png"),
         .spike  = LoadTexture("assets/images/tile_spike.png"),
-        .spring = LoadTexture("assets/images/tile_spring.png"),
+        .spring = LoadTexture("assets/images/spring.png"),
         .ring   = LoadTexture("assets/images/tile_ring.png"),
         .goal   = LoadTexture("assets/images/tile_goal.png")
     };
@@ -487,7 +689,7 @@ int main(void){
     Rectangle src= {0.0f,0.0f,(float)ball.texture.width,(float)ball.texture.height};
     Camera2D camera = { 0 };
     camera.offset = (v2){ BASE_W / 2.0f, BASE_H / 2.0f };
-    camera.zoom = 1.0f;
+    camera.zoom = 1.8f;
     
     
 
@@ -498,8 +700,6 @@ int main(void){
         float dt = GetFrameTime();
         if(state ==PLAYING){
             UpdateBall(&ball,dt,&state); 
-        }else if(IsKeyPressed(KEY_R)){
-            Reset(&ball, &state);
         }
 
 //Camera Update
@@ -515,11 +715,22 @@ int main(void){
         camera.target.x = Clamp(ball.position.x, min_camera_x, max_camera_x);
         
 
+
+
         
         camera.target.y = ball.position.y;
-        float map_center_y = (current_row * TILE_SIZE) / 2.0f;
-        //max height
-        camera.target.y = map_center_y;
+        float min_camera_y = BASE_H / (2.0f * camera.zoom);
+        float max_camera_y = current_row*TILE_SIZE - BASE_H / (2.0f * camera.zoom);
+
+        camera.target.y = Clamp(ball.position.y,min_camera_y,max_camera_y);
+
+
+
+
+
+        // float map_center_y = (current_row * TILE_SIZE) / 2.0f;
+        // //max height
+        // camera.target.y = map_center_y;
     
 //Button Update
         v2 mouse = GetMousePosition();
@@ -583,7 +794,6 @@ int main(void){
         {
             if(CheckCollisionPointRec(mouse, MenuePlayButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
-
                 state = NAME_INPUT;
                 letterCount = 0;
                 playerName[0] = '\0';
@@ -595,7 +805,7 @@ int main(void){
                 Reset(&ball,&state);
 
                 state = LEVEL_SELECT;
-                // Reset(&ball,&state);
+
             }
         }
         else if(state == LEVEL_SELECT)
@@ -615,10 +825,16 @@ int main(void){
                 current_col = LEVEL_TWO_COL;
                     Reset(&ball, &state);
             }
+            else if(CheckCollisionPointRec(mouse, Level3Button.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                current_level = 3;
+                current_row = LEVEL_THREE_ROW;
+                current_col = LEVEL_THREE_COL;
+                    Reset(&ball, &state);
+            }
             else if(CheckCollisionPointRec(mouse, LevelBackButton.rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             {
                 state = MAIN_MENUE;
-
             }
         }
         else if (state == PLAYING) {
@@ -629,10 +845,7 @@ int main(void){
                 SaveHighScoreIfBest(playerName, score, &highScore);
             }
         }
-        else if (IsKeyPressed(KEY_R)) {
-            Reset(&ball,&state);
-            state = PLAYING;
-        }
+        
 
         
         
@@ -642,7 +855,6 @@ int main(void){
 
         BeginDrawing();
         ClearBackground((Color){174, 206, 240, 255});
-
         if (state == NAME_INPUT) {
             DrawRectangle(0, 0, BASE_W, BASE_H, (Color){ 20, 20, 30, 230 });
             DrawText("ENTER YOUR NAME:", BASE_W / 2 - 160, 220, 30, RAYWHITE);
@@ -657,14 +869,17 @@ int main(void){
         if(state != MAIN_MENUE && state != NAME_INPUT)
 
         if(state != MAIN_MENUE && state != LEVEL_SELECT)
-
         {
             BeginMode2D(camera);
                 DrawTile(&levelAssets);
                 Rectangle des = {ball.position.x,ball.position.y,ball.radius*2.0f,ball.radius*2.0f};
-                v2 origin = {ball.radius,ball.radius};
-                DrawTexturePro(ball.texture,src,des,origin,ball.rotation,WHITE);
+                DrawTexturePro(ball.texture,src,des,(v2){ball.radius, ball.radius},ball.rotation,WHITE);
+
+                DrawSpider(spidersprite);
+                UpdateSpider(&state, ball, dt);
+
             EndMode2D();
+
 
             DrawText(TextFormat("Player: %s", playerName), 20, 20, 22, WHITE);
             DrawText(TextFormat("Score: %d", score), BASE_W - 220, 20, 22, WHITE);
@@ -711,10 +926,10 @@ int main(void){
 
         if(state == LEVEL_SELECT)
         {
-                DrawRectangleRec(LevelSelectionRect, BLACK);
-                DrawRectangleRec(Level1Button.rect, WHITE);
-                DrawRectangleRec(Level2Button.rect, WHITE);
-                DrawRectangleRec(Level3Button.rect, WHITE);
+                DrawRectangleRec(LevelSelectionRect, WHITE);
+                DrawRectangleRec(Level1Button.rect, ORANGE);
+                DrawRectangleRec(Level2Button.rect, ORANGE);
+                DrawRectangleRec(Level3Button.rect, ORANGE);
                 DrawRectangleRec(LevelBackButton.rect, YELLOW);
 
 
@@ -740,6 +955,7 @@ int main(void){
     UnloadTexture(menueplaysprite);
     UnloadTexture(pausesprite);
     UnloadTexture(levelselectsprite);
+    UnloadTexture(spidersprite);
     CloseWindow();
 
 
