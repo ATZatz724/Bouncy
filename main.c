@@ -358,8 +358,9 @@ void BallPlatformCollision(Ball *b, Rectangle tilerect, char tiletype, Gamestate
     }
 
 }
-void UpdateBall(Ball *b, float dt,Gamestate *state)
 
+bool coin_collected = false;
+void UpdateBall(Ball *b, float dt,Gamestate *state)
 {
 
     
@@ -400,6 +401,7 @@ void UpdateBall(Ball *b, float dt,Gamestate *state)
                 if(CheckCollisionCircleRec(b->position,b->radius,tilerect)){
                     maps[current_level - 1][r * current_col + c] = '0';
                     score+=500;
+                    coin_collected = true;
                 }
                 continue;
             }
@@ -652,6 +654,7 @@ int main(void){
 // INIT
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(BASE_W,BASE_H,"Bounce Classic");
+    InitAudioDevice();
     SetTargetFPS(60);
 
     ScoreRecord highScore = { "None", 0 };
@@ -671,6 +674,13 @@ int main(void){
     Texture2D pausesprite = LoadTexture("assets/images/PauseButton.png");
     Texture2D levelselectsprite = LoadTexture("assets/images/level-select-button.png");
     Texture2D spidersprite = LoadTexture("assets/images/spider.png");
+    Texture2D poppedballsprite = LoadTexture("assets/images/pop-red-ball.png");
+    Texture2D backbuttonsprite = LoadTexture("assets/images/back-button.png");
+    Sound coincollectaudio = LoadSound("assets/audios/coins.mp3");
+
+
+    Font levelfont = LoadFont("assets/fonts/Zhetia.otf");
+
     Ball ball = {
                 .radius=14.0f,
                 .rotation = 0.0f,
@@ -678,7 +688,7 @@ int main(void){
             
             };  
     Levelasset levelAssets = {
-        .brick  = LoadTexture("assets/images/tile_brick.png"),
+        .brick  = LoadTexture("assets/images/brick.png"),
         .spike  = LoadTexture("assets/images/tile_spike.png"),
         .spring = LoadTexture("assets/images/spring.png"),
         .ring   = LoadTexture("assets/images/tile_ring.png"),
@@ -696,11 +706,9 @@ int main(void){
 
 
     while(!WindowShouldClose()){
-//UPDATE
+
         float dt = GetFrameTime();
-        if(state ==PLAYING){
-            UpdateBall(&ball,dt,&state); 
-        }
+        
 
 //Camera Update
         camera.target = ball.position;
@@ -839,6 +847,11 @@ int main(void){
         }
         else if (state == PLAYING) {
             UpdateBall(&ball, dt, &state);
+            if(coin_collected == true)
+            {
+                PlaySound(coincollectaudio);
+                coin_collected = false;
+            }
             
             // Check for game end & save score
             if (state == DEAD || state == WIN) {
@@ -873,7 +886,12 @@ int main(void){
             BeginMode2D(camera);
                 DrawTile(&levelAssets);
                 Rectangle des = {ball.position.x,ball.position.y,ball.radius*2.0f,ball.radius*2.0f};
-                DrawTexturePro(ball.texture,src,des,(v2){ball.radius, ball.radius},ball.rotation,WHITE);
+                if(state == PLAYING)
+                    DrawTexturePro(ball.texture,src,des,(v2){ball.radius, ball.radius},ball.rotation,WHITE);
+                else if(state == DEAD)
+                {
+                    DrawTexturePro(poppedballsprite,src,des,(v2){ball.radius, ball.radius},0,WHITE);
+                }
 
                 DrawSpider(spidersprite);
                 UpdateSpider(&state, ball, dt);
@@ -895,13 +913,35 @@ int main(void){
             DrawTexturePro(resumebuttonsprite, (Rectangle){0.0f, 0.0f, resumebuttonsprite.width, resumebuttonsprite.height}, ResumeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             DrawTexturePro(retrybuttonsprite, (Rectangle){0.0f, 0.0f, retrybuttonsprite.width, retrybuttonsprite.height}, RetryButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             DrawTexturePro(homebuttonsprite, (Rectangle){0.0f, 0.0f, homebuttonsprite.width, homebuttonsprite.height}, HomeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
-            // DrawTexturePro(levelselectsprite, (Rectangle){0.0f, 0.0f, levelselectsprite.width, levelselectsprite.height}, LevelSelectButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
+
 
         }
 
         if(state == MAIN_MENUE)
         {
-            
+
+            float x = 0;
+            while(x + 100 < BASE_W)
+            {
+                DrawTexturePro(
+                    levelAssets.brick,
+                    (Rectangle){0.0f,0.0f,levelAssets.brick.width, levelAssets.brick.height},
+                    (Rectangle){x, BASE_H - 100, 100, 100},
+                    (v2){0.0f, 0.0f},
+                    0.0f,
+                    WHITE
+                );
+                x += 100;
+            }
+            DrawTexturePro(
+                    levelAssets.brick,
+                    (Rectangle){0.0f,0.0f,levelAssets.brick.width, levelAssets.brick.height},
+                    (Rectangle){x, BASE_H - 100, 100, 100},
+                    (v2){0.0f, 0.0f},
+                    0.0f,
+                    WHITE
+                );
+
             DrawTexturePro(logo, 
                 (Rectangle){0.0f, 0.0f, logo.width, logo.height - 50}, 
                 (Rectangle){(BASE_W - 400.0f)/2, (BASE_H - 200.0f)/2 - 50.0f, 400.0f, 200.0f}, 
@@ -926,11 +966,42 @@ int main(void){
 
         if(state == LEVEL_SELECT)
         {
+                float x = 0;
+                while(x + 100 < BASE_W)
+                {
+                    DrawTexturePro(
+                        levelAssets.brick,
+                        (Rectangle){0.0f,0.0f,levelAssets.brick.width, levelAssets.brick.height},
+                        (Rectangle){x, BASE_H - 100, 100, 100},
+                        (v2){0.0f, 0.0f},
+                        0.0f,
+                        WHITE
+                    );
+                    x += 100;
+                }
+                DrawTexturePro(
+                        levelAssets.brick,
+                        (Rectangle){0.0f,0.0f,levelAssets.brick.width, levelAssets.brick.height},
+                        (Rectangle){x, BASE_H - 100, 100, 100},
+                        (v2){0.0f, 0.0f},
+                        0.0f,
+                        WHITE
+                    );
+
+
                 DrawRectangleRec(LevelSelectionRect, WHITE);
-                DrawRectangleRec(Level1Button.rect, ORANGE);
-                DrawRectangleRec(Level2Button.rect, ORANGE);
-                DrawRectangleRec(Level3Button.rect, ORANGE);
-                DrawRectangleRec(LevelBackButton.rect, YELLOW);
+                DrawRectangleLinesEx(LevelSelectionRect, 3, BLACK);
+
+                DrawTexturePro(levelAssets.brick,(Rectangle){0.0f,0.0f,levelAssets.brick.width,levelAssets.brick.height},Level1Button.rect,(v2){0.0f,0.0f},0.0f,WHITE);
+                DrawTexturePro(levelAssets.brick,(Rectangle){0.0f,0.0f,levelAssets.brick.width,levelAssets.brick.height},Level2Button.rect,(v2){0.0f,0.0f},0.0f,WHITE);
+                DrawTexturePro(levelAssets.brick,(Rectangle){0.0f,0.0f,levelAssets.brick.width,levelAssets.brick.height},Level3Button.rect,(v2){0.0f,0.0f},0.0f,WHITE);
+                DrawTexturePro(backbuttonsprite,(Rectangle){0.0f,0.0f,backbuttonsprite.width,backbuttonsprite.height},LevelBackButton.rect,(v2){0.0f,0.0f},0.0f,WHITE);
+
+                DrawTextEx(GetFontDefault(), "1", (v2){Level1Button.rect.x + 47,Level1Button.rect.y + 10},100,1.0f,WHITE);
+                DrawTextEx(GetFontDefault(), "2", (v2){Level2Button.rect.x + 37,Level2Button.rect.y + 10},100,1.0f,WHITE);
+                DrawTextEx(GetFontDefault(), "3", (v2){Level3Button.rect.x + 37,Level3Button.rect.y + 10},100,1.0f,WHITE);
+
+                
 
 
         }
@@ -956,6 +1027,11 @@ int main(void){
     UnloadTexture(pausesprite);
     UnloadTexture(levelselectsprite);
     UnloadTexture(spidersprite);
+    UnloadSound(coincollectaudio);
+    UnloadTexture(poppedballsprite);
+    UnloadTexture(backbuttonsprite);
+    UnloadFont(levelfont);
+    CloseAudioDevice();
     CloseWindow();
 
 
