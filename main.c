@@ -23,6 +23,7 @@
 // #define MAP_HEIGHT_PX (MAP_ROW * TILE_SIZE)
 #define MAX_LEN 16
 #define SCORES "highscore.txt"
+#define MAX_SCORES 100
 
 #define LEVEL_ONE_ROW 8
 #define LEVEL_ONE_COL 105
@@ -148,6 +149,7 @@ char *maps[2] = {&map1[0][0], &map2[0][0]};
 
 
 /* scoring */ int score = 0;
+bool scoresaved=false;
 
 v2 starting_positions[2] = {
     (v2){2.5f*TILE_SIZE,1.5f*TILE_SIZE},
@@ -324,6 +326,72 @@ void DrawTile(Levelasset *lvl){
 }
 
 // Score file Handling
+ScoreRecord history[MAX_SCORES];
+int scorecount=0;
+void LoadScoreHistory(ScoreRecord history[], int *count) {
+    *count = 0;
+    FILE *file = fopen(SCORES, "r");
+    if (file != NULL) {
+        while (*count < MAX_SCORES && fscanf(file, "%15s %d", history[*count].name, &history[*count].score) == 2) {
+            (*count)++;
+        }
+        fclose(file);
+    }
+}
+
+void SaveScoreHistory(ScoreRecord history[], int count) {
+    FILE *file = fopen(SCORES, "w");
+    if (file != NULL) {
+        for (int i = 0; i < count; i++) {
+            fprintf(file, "%s %d\n", history[i].name, history[i].score);
+        }
+        fclose(file);
+    }
+}
+
+void AddScoreRecord(ScoreRecord history[], int *count, const char *name, int newScore) {
+    if (*count < MAX_SCORES) {
+        strncpy(history[*count].name, (strlen(name) > 0) ? name : "Player", MAX_LEN);
+        history[*count].name[MAX_LEN] = '\0';
+        history[*count].score = newScore;
+        (*count)++;
+    } else {
+        // Replace lowest score if filled
+        if (newScore > history[*count - 1].score) {
+            strncpy(history[*count - 1].name, (strlen(name) > 0) ? name : "Player", MAX_LEN);
+            history[*count - 1].name[MAX_LEN] = '\0';
+            history[*count - 1].score = newScore;
+        }
+    }
+
+    // Sort descending by score
+    for (int i = 0; i < *count - 1; i++) {
+        for (int j = i + 1; j < *count; j++) {
+            if (history[j].score > history[i].score) {
+                ScoreRecord temp = history[i];
+                history[i] = history[j];
+                history[j] = temp;
+            }
+        }
+    }
+
+    SaveScoreHistory(history, *count);
+}
+
+void DrawScoreHistoryUI(ScoreRecord history[], int count, int x, int y) {
+    DrawText("LEADERBOARD", x, y, 22, GOLD);
+    DrawLine(x, y + 25, x + 250, y + 25, GOLD);
+    
+    int displayLimit = (count < 5) ? count : 5; // Show top 5
+    if (displayLimit == 0) {
+        DrawText("No records yet", x, y + 35, 18, GRAY);
+        return;
+    }
+
+    for (int i = 0; i < displayLimit; i++) {
+        DrawText(TextFormat("%d. %-10s %d", i + 1, history[i].name, history[i].score), x, y + 35 + (i * 24), 18, RAYWHITE);
+    }
+}
 void LoadHighscore(ScoreRecord *record){
     FILE *file = fopen(SCORES,"r");
     if (file != NULL) {
@@ -454,8 +522,10 @@ int main(void){
     InitWindow(BASE_W,BASE_H,"Bounce Classic");
     SetTargetFPS(60);
 
-    ScoreRecord highScore = { "None", 0 };
-    LoadHighscore(&highScore);
+    ScoreRecord scoreHistory[MAX_SCORES];
+    int scoreCount = 0;
+    LoadScoreHistory(scoreHistory, &scoreCount);
+
 
     char playerName[MAX_LEN + 1] = "\0";
     int letterCount = 0;
@@ -487,7 +557,7 @@ int main(void){
     Rectangle src= {0.0f,0.0f,(float)ball.texture.width,(float)ball.texture.height};
     Camera2D camera = { 0 };
     camera.offset = (v2){ BASE_W / 2.0f, BASE_H / 2.0f };
-    camera.zoom = 1.0f;
+    camera.zoom = 1.3f;
     
     
 
@@ -498,6 +568,10 @@ int main(void){
         float dt = GetFrameTime();
         if(state ==PLAYING){
             UpdateBall(&ball,dt,&state); 
+            if((state==DEAD ||  state==WIN ) && !scoresaved){
+                AddScoreRecord(scoreHistory,&scoreCount,playerName,score);
+                scoresaved=true;
+            }
         }else if(IsKeyPressed(KEY_R)){
             Reset(&ball, &state);
         }
@@ -513,13 +587,19 @@ int main(void){
         // } else 
         
         camera.target.x = Clamp(ball.position.x, min_camera_x, max_camera_x);
+
+        float min_camera_y = BASE_H / (2.0f * camera.zoom);
+        float max_camera_y = current_col*TILE_SIZE - BASE_H / (2.0f * camera.zoom);// max width
+        camera.target.y = Clamp(ball.position.y, min_camera_y, max_camera_y);
         
 
         
-        camera.target.y = ball.position.y;
-        float map_center_y = (current_row * TILE_SIZE) / 2.0f;
-        //max height
-        camera.target.y = map_center_y;
+        // camera.target.y = ball.position.y;
+        // float map_center_y = (current_row * TILE_SIZE) / 2.0f;
+        // //max height
+        // camera.target.y = map_center_y;
+
+        
     
 //Button Update
         v2 mouse = GetMousePosition();
@@ -621,18 +701,18 @@ int main(void){
 
             }
         }
-        else if (state == PLAYING) {
-            UpdateBall(&ball, dt, &state);
+        // else if (state == PLAYING) {
+        //     UpdateBall(&ball, dt, &state);
             
-            // Check for game end & save score
-            if (state == DEAD || state == WIN) {
-                SaveHighScoreIfBest(playerName, score, &highScore);
-            }
-        }
-        else if (IsKeyPressed(KEY_R)) {
-            Reset(&ball,&state);
-            state = PLAYING;
-        }
+        //     // Check for game end & save score
+        //     if (state == DEAD || state == WIN) {
+        //         SaveHighScoreIfBest(playerName, score, &highScore);
+        //     }
+        // }
+        // else if (IsKeyPressed(KEY_R)) {
+        //     Reset(&ball,&state);
+        //     state = PLAYING;
+        // }
 
         
         
@@ -654,9 +734,8 @@ int main(void){
             DrawText(playerName, (int)textBox.x + 15, (int)textBox.y + 12, 28, MAROON);
             DrawText("Press ENTER to Start Playing", BASE_W / 2 - 180, 360, 20, GRAY);
         }
-        if(state != MAIN_MENUE && state != NAME_INPUT)
-
-        if(state != MAIN_MENUE && state != LEVEL_SELECT)
+    
+        if(state != MAIN_MENUE && state != LEVEL_SELECT && state != NAME_INPUT)
 
         {
             BeginMode2D(camera);
@@ -668,7 +747,7 @@ int main(void){
 
             DrawText(TextFormat("Player: %s", playerName), 20, 20, 22, WHITE);
             DrawText(TextFormat("Score: %d", score), BASE_W - 220, 20, 22, WHITE);
-            DrawText(TextFormat("High Score: %s (%d)", highScore.name, highScore.score), BASE_W - 420, 50, 20, GOLD);
+            
         }
 
         if(state != MAIN_MENUE) DrawTexturePro(pausesprite, (Rectangle){0.0f, 0.0f, pausesprite.width, pausesprite.height}, PauseButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
@@ -676,12 +755,12 @@ int main(void){
         if(state == PAUSED)
         {
             DrawRectangleRec(MenueRect, RAYWHITE);
-            DrawText("LEVEL 1", MenueRect.x + 150, MenueRect.y + 20, 60, BLACK);
+            DrawText(TextFormat("LEVEL %d",current_level), MenueRect.x + 150, MenueRect.y + 20, 60, BLACK);
             DrawTexturePro(resumebuttonsprite, (Rectangle){0.0f, 0.0f, resumebuttonsprite.width, resumebuttonsprite.height}, ResumeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             DrawTexturePro(retrybuttonsprite, (Rectangle){0.0f, 0.0f, retrybuttonsprite.width, retrybuttonsprite.height}, RetryButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             DrawTexturePro(homebuttonsprite, (Rectangle){0.0f, 0.0f, homebuttonsprite.width, homebuttonsprite.height}, HomeButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
             // DrawTexturePro(levelselectsprite, (Rectangle){0.0f, 0.0f, levelselectsprite.width, levelselectsprite.height}, LevelSelectButton.rect, (v2){0.0f, 0.0f}, 0.0f, WHITE);
-
+            DrawScoreHistoryUI(scoreHistory,scorecount,50,50);
         }
 
         if(state == MAIN_MENUE)
@@ -695,6 +774,8 @@ int main(void){
                 WHITE
             );
 
+           
+
             DrawTexturePro(menueplaysprite, 
             (Rectangle){0.0f, 0.0f, menueplaysprite.width, menueplaysprite.height},
             MenuePlayButton.rect,
@@ -702,6 +783,8 @@ int main(void){
             0.0f,
             WHITE
             );
+
+            DrawScoreHistoryUI(scoreHistory, scoreCount, 50, 50);
             // if(IsKeyDown(KEY_ENTER)) 
             // {
             // state = PLAYING;
@@ -720,8 +803,14 @@ int main(void){
 
         }
 
-        if(state == DEAD) DrawText("GAME OVER",480,20,24,RED);
-        if(state == WIN) DrawText("LEVEL CLEARED",480,20,24,GOLD);    
+        if(state == DEAD){
+            DrawText("GAME OVER",480,20,24,RED);
+            DrawScoreHistoryUI(scoreHistory, scoreCount, 50, 100);
+        } 
+        if(state == WIN) {
+            DrawText("LEVEL CLEARED",480,20,24,GOLD);
+            DrawScoreHistoryUI(scoreHistory, scoreCount, 50, 100);
+        }    
         EndDrawing();
 
     }
