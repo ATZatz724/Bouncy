@@ -1349,8 +1349,10 @@ int main(void){
     Texture2D logo = LoadTexture("assets/images/title-logo.png");
     Texture2D pausesprite = LoadTexture("assets/images/PauseButton.png");
     Texture2D levelselectsprite = LoadTexture("assets/images/level-select-button.png");
-    Texture2D spidersprite = BgRemover("assets/images/spider.png");
-    Texture2D poppedballsprite = LoadTexture("assets/images/pop-red-ball.png");   
+    Texture2D spidersprite = LoadTexture("assets/images/spider.png");
+    Texture2D poppedballsprite = LoadTexture("assets/images/pop-red-ball.png"); 
+    
+    
     Sound coincollectaudio = LoadSound("assets/audios/coins.mp3");                 
     Sound ballpoppedaudio  = LoadSound("assets/audios/pop.mp3");
     Sound levelpassedaudio = LoadSound("assets/audios/universfield-next-level-114480.mp3");
@@ -1365,7 +1367,7 @@ int main(void){
     Levelasset levelAssets = {
         .brick  = LoadTexture("assets/images/tile_brick.png"),
         .spike  = BgRemover("assets/images/tile_spike.png"),
-        .spring = BgRemover("assets/images/spring.png"),
+        .spring = LoadTexture("assets/images/spring.png"),
         .ring   = BgRemover("assets/images/tile_ring.png"),
         .goal   = BgRemover("assets/images/tile_goal.png")
     };
