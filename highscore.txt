@@ -1,15 +1,1 @@
-univel 4500
-me 4500
-arshad 4000
-zarif 4000
-shera 2500
-ahanaf 2000
-ahanaf 1000
-zarif 1000
-arshad 500
-shera 500
-me 500
-me 500
-shera 500
-main 0
-zarif 0
+

@@ -11,7 +11,7 @@
 #define BASE_W 1280                   
 #define BASE_H 720                    
 #define GRAVITY 1500.0f            
-#define BOUNCINESS 0.6f              
+#define BOUNCINESS 0.5f           
 #define BOUNCE_STOP 150.0f            
 #define MAX_ACC 900.0f                
 #define MAX_SPEED 260.0f              
@@ -229,6 +229,10 @@ int current_col = LEVEL_ONE_COL;
 int score = 0;
 bool scoresaved = false;
 
+bool coin_collected = false;   
+bool ball_popped = false;      
+bool level_passed = false;     
+
 /*==============================================================================
 ||                          TILING & LEVEL RESET                               ||
 ==============================================================================*/
@@ -290,8 +294,8 @@ void BallPlatformCollision(Ball *b, Rectangle tilerect, char tiletype, Gamestate
     b->position.x += normal.x*penetration;
     b->position.y += normal.y*penetration;
 
-    if(tiletype == '2') {*state = DEAD; return;}
-    if(tiletype == '5') {*state = WIN; return;}
+    if(tiletype == '2') {*state = DEAD; ball_popped = true; return;}
+    if(tiletype == '5') {*state = WIN; level_passed = true; return;}
 
     float Normalvel = b->velocity.x*normal.x + b->velocity.y*normal.y;
 
@@ -355,6 +359,7 @@ void UpdateBall(Ball *b, float dt, Gamestate *state){
                 if(CheckCollisionCircleRec(b->position, b->radius, tilerect)){
                     SetTile(r, c, '0');
                     score += 500;
+                    coin_collected = true;
                 }
                 continue;
             }
@@ -367,6 +372,7 @@ void UpdateBall(Ball *b, float dt, Gamestate *state){
                 };
                 if(CheckCollisionCircleRec(b->position, b->radius, spikehit)){
                     *state = DEAD;
+                    ball_popped = true;
                     return;
                 }
                 continue;
@@ -398,6 +404,7 @@ void UpdateBall(Ball *b, float dt, Gamestate *state){
     }
     if(b->position.y - b->radius > mapH){
         *state = DEAD;
+        ball_popped = true;
     }
 }
 
@@ -488,6 +495,7 @@ void UpdateSpider(Ball *b, float dt, Gamestate *state){
 
         if(CheckCollisionCircleRec(b->position, b->radius, s->rect)){
             *state = DEAD;
+            ball_popped = true;
         }
     }
 }
@@ -798,8 +806,7 @@ void DrawSpinningBall(Texture2D ballTex, float x, float y, float r, float rotati
 /*==============================================================================
 ||                          BACKGROUND                                        ||
 ==============================================================================*/
-// Runs ONCE at startup: gives every cloud a random position, size and speed.
-// (Without this all clouds have size 0 and speed 0, so the sky stays empty.)
+
 void InitMenuBackground(void){
     for(int i = 0; i < CLOUD_COUNT; i++){
         clouds[i].x = (float)GetRandomValue(0, BASE_W);
@@ -1315,6 +1322,7 @@ int main(void){
 ||                                 WINDOW SCREEN                                   ||
 ==============================================================================*/
     InitWindow(BASE_W, BASE_H, "Bounce Classic");
+    InitAudioDevice();   
     SetTargetFPS(60);
     SetExitKey(KEY_NULL);
 
@@ -1342,6 +1350,10 @@ int main(void){
     Texture2D pausesprite = LoadTexture("assets/images/PauseButton.png");
     Texture2D levelselectsprite = LoadTexture("assets/images/level-select-button.png");
     Texture2D spidersprite = BgRemover("assets/images/spider.png");
+    Texture2D poppedballsprite = LoadTexture("assets/images/pop-red-ball.png");   
+    Sound coincollectaudio = LoadSound("assets/audios/coins.mp3");                 
+    Sound ballpoppedaudio  = LoadSound("assets/audios/pop.mp3");
+    Sound levelpassedaudio = LoadSound("assets/audios/universfield-next-level-114480.mp3");
 
 
     Ball ball = {
@@ -1396,6 +1408,11 @@ int main(void){
                 }
                 UpdateBall(&ball, dt, &state);
                 if(state == PLAYING) UpdateSpider(&ball, dt, &state);
+
+            //Audio stuff
+                if(coin_collected){ PlaySound(coincollectaudio); coin_collected = false; }
+                if(ball_popped)   { PlaySound(ballpoppedaudio);  ball_popped = false; }
+                if(level_passed)  { PlaySound(levelpassedaudio); level_passed = false; }
 
                 if((state == DEAD || state == WIN) && !scoresaved){
 
@@ -1486,7 +1503,13 @@ int main(void){
             BeginMode2D(camera);
                 DrawTile(&levelAssets);
                 Rectangle des = {ball.position.x, ball.position.y, ball.radius*2.0f, ball.radius*2.0f};
-                DrawTexturePro(ball.texture, src, des, (v2){ball.radius, ball.radius}, ball.rotation, WHITE);
+                if(state == DEAD){
+                    
+                    DrawTexturePro(poppedballsprite, (Rectangle){0, 0, (float)poppedballsprite.width, (float)poppedballsprite.height},
+                                   des, (v2){ball.radius, ball.radius}, 0.0f, WHITE);
+                }else{
+                    DrawTexturePro(ball.texture, src, des, (v2){ball.radius, ball.radius}, ball.rotation, WHITE);
+                }
                 DrawSpider(spidersprite);
             EndMode2D();
 
@@ -1551,6 +1574,11 @@ int main(void){
     UnloadTexture(pausesprite);
     UnloadTexture(levelselectsprite);
     UnloadTexture(spidersprite);
+    UnloadTexture(poppedballsprite);   
+    UnloadSound(coincollectaudio);
+    UnloadSound(ballpoppedaudio);
+    UnloadSound(levelpassedaudio);
+    CloseAudioDevice();
     CloseWindow();
 
     return 0;
