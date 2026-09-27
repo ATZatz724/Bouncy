@@ -657,9 +657,9 @@ typedef struct CreditLine{
 }CreditLine;
 
 const CreditLine credits[] = {
-    { "GAME DESIGN & PROGRAMMING", "Your Name Here" },
-    { "ART & LEVEL DESIGN",        "Your Name Here" },
-    { "MADE WITH",                 "C and raylib (www.raylib.com)" },
+    { "GAME DESIGN & PROGRAMMING", "Ahanaf Tahamid & Arshad Akhter Kalpo" },
+    { "SUPERVISED BY",        "Md. Mostofa Akbar Sir" },
+    { "MADE WITH",                 "C and raylib" },
     { "INSPIRED BY",               "Bounce, the classic Nokia phone game" },
 };
 #define CREDIT_COUNT ((int)(sizeof(credits)/sizeof(credits[0])))
