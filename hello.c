@@ -1,3 +1,12 @@
+/*===========================================================================================
+||                         BOUNCE CLASSIC:Raylib Project(CSE 102)                           ||
+||                                      Created By                                          ||
+||                           Ahanaf Tahamid & Arshad Akter Kalpo                            ||
+=============================================================================================*/
+
+
+
+
 #include "raylib.h"
 #include "raymath.h"
 #include <math.h>
